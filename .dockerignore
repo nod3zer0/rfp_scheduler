@@ -1,0 +1,16 @@
+.git
+.gitignore
+.github
+node_modules
+.svelte-kit
+build
+coverage
+playwright-report
+test-results
+*.log
+*.db
+*.sqlite
+*.sqlite3
+.vscode
+.env
+.env.*

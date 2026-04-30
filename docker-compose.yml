@@ -1,0 +1,59 @@
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npm run db:push
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      # Overrides the .env to ensure the DB uses the persistent volume
+      DATABASE_PATH: /data/rfpsquad.db
+    volumes:
+      - db-data:/data
+
+  app:
+    build: .
+    depends_on:
+      - migrate
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Overrides the .env to ensure the DB uses the persistent volume
+      DATABASE_PATH: /data/rfpsquad.db
+    volumes:
+      - db-data:/data
+    restart: unless-stopped
+
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    profiles: ["dev"]
+    user: "${UID:-1000}:${GID:-1000}"
+    depends_on:
+      - migrate
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      PORT: 5173
+      # Overrides the .env to ensure the DB uses the persistent volume
+      DATABASE_PATH: /data/rfpsquad.db
+      # Overrides the .env ORIGIN for the dev server port
+      ORIGIN: http://localhost:5173
+    volumes:
+      - .:/app:Z
+      - /app/node_modules
+      - db-data:/data
+    restart: unless-stopped
+
+volumes:
+  db-data:
