@@ -1,0 +1,36 @@
+node_modules
+
+# SvelteKit
+/.svelte-kit
+/build
+
+# Adapters / deploy targets
+.output
+.vercel
+.netlify
+.wrangler
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# SQLite databases (all variants, test included)
+*.db
+*.db-shm
+*.db-wal
+
+# Playwright output
+/playwright-report
+/test-results
+
+# Cursor IDE
+.cursor
