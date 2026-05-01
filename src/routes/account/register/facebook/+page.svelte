@@ -27,7 +27,7 @@
 			</div>
 		{/if}
 
-		<form method="POST" class="flex flex-col gap-4">
+		<form method="POST" action="?redirect={encodeURIComponent(data.redirectTo)}" class="flex flex-col gap-4">
 			<label class="block">
 				<span class="mb-1 block text-sm font-medium text-[var(--color-text)]">Display name</span>
 				<input

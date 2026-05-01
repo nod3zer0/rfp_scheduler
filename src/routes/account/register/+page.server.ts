@@ -8,20 +8,22 @@ import { nanoid } from 'nanoid';
 
 import { env } from '$env/dynamic/private';
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = ({ locals, url }) => {
 	return {
-		currentName: locals.member?.name ?? locals.user?.name ?? '',
+		currentName: locals.user?.name ?? '',
 		isLoggedIn: !!locals.user,
+		redirectTo: url.searchParams.get('redirect') ?? '/',
 		facebookEnabled: !!(env.FACEBOOK_APP_ID && env.FACEBOOK_APP_SECRET)
 	};
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, locals }) => {
+	default: async ({ request, cookies }) => {
 		const form = await request.formData();
 		const name = (form.get('name') as string)?.trim();
 		const password = (form.get('password') as string) ?? '';
 		const confirm = (form.get('confirm') as string) ?? '';
+		const redirectTo = (form.get('redirectTo') as string) || '/';
 
 		if (!name) return fail(400, { error: 'Name is required' });
 		if (password.length < 6) return fail(400, { error: 'Password must be at least 6 characters' });
@@ -36,10 +38,7 @@ export const actions: Actions = {
 
 		db.insert(users).values({ id: userId, name, passwordHash, createdAt: new Date().toISOString() }).run();
 
-		// Set cookie with userId (no group yet)
-		const groupId = '';
-		const memberId = '';
-		const payload = JSON.stringify({ userId, memberId, groupId });
+		const payload = JSON.stringify({ userId, memberId: '', groupId: '' });
 		cookies.set('rfp_identity', payload, {
 			path: '/',
 			maxAge: 60 * 60 * 24 * 365,
@@ -47,8 +46,7 @@ export const actions: Actions = {
 			httpOnly: false
 		});
 
-		// Redirect to groups if they have no group yet
-		if (!groupId) redirect(303, '/account/groups');
-		redirect(303, '/');
+		if (redirectTo !== '/') redirect(303, redirectTo);
+		redirect(303, '/account/groups');
 	}
 };

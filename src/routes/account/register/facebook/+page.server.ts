@@ -5,18 +5,22 @@ import { users } from '$lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-export const load: PageServerLoad = ({ cookies }) => {
+export const load: PageServerLoad = ({ cookies, url }) => {
 	const raw = cookies.get('fb_pending');
 	if (!raw) redirect(303, '/account/login');
 
 	const pending = JSON.parse(raw) as { facebookId: string; suggestedName: string; pictureUrl?: string | null };
-	return { suggestedName: pending.suggestedName };
+	return {
+		suggestedName: pending.suggestedName,
+		redirectTo: url.searchParams.get('redirect') ?? '/'
+	};
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, locals }) => {
+	default: async ({ request, cookies, url }) => {
 		const raw = cookies.get('fb_pending');
 		if (!raw) throw error(400, 'Session expired. Please try signing in with Facebook again.');
+		const redirectTo = url.searchParams.get('redirect') ?? '/';
 
 		const pending = JSON.parse(raw) as { facebookId: string; suggestedName: string; pictureUrl?: string | null };
 		const form = await request.formData();
@@ -46,6 +50,7 @@ export const actions: Actions = {
 		const payload = JSON.stringify({ userId, memberId, groupId });
 		cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
 
+		if (redirectTo !== '/') redirect(303, redirectTo);
 		if (!groupId) redirect(303, '/account/groups');
 		redirect(303, '/');
 	}

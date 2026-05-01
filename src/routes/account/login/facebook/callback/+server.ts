@@ -17,6 +17,8 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	if (!code || !state || state !== storedState) throw error(400, 'Invalid OAuth state');
 
 	cookies.delete('fb_oauth_state', { path: '/' });
+	const pendingRedirect = cookies.get('fb_oauth_redirect') ?? '/';
+	cookies.delete('fb_oauth_redirect', { path: '/' });
 
 	// Exchange code for tokens
 	let facebookUserId: string;
@@ -63,7 +65,10 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 			sameSite: 'lax',
 			maxAge: 60 * 10 // 10 minutes
 		});
-		redirect(302, '/account/register/facebook');
+		const registerUrl = pendingRedirect !== '/'
+			? `/account/register/facebook?redirect=${encodeURIComponent(pendingRedirect)}`
+			: '/account/register/facebook';
+		redirect(302, registerUrl);
 	}
 
 	// Log in existing user
@@ -78,20 +83,19 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		memberId = member?.id ?? '';
 	}
 
-	// If no group, find first group they belong to
+	// If no group context, find first group they belong to
 	if (!groupId) {
 		const firstMember = db.select().from(members).where(eq(members.userId, userId)).get();
 		if (firstMember) {
 			const payload = JSON.stringify({ userId, memberId: firstMember.id, groupId: firstMember.groupId });
 			cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
-			redirect(302, '/');
+			redirect(302, pendingRedirect !== '/' ? pendingRedirect : '/');
 		}
 	}
 
 	const payload = JSON.stringify({ userId, memberId, groupId });
 	cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
 
-	// Redirect to groups page if no group context
-	if (!groupId) redirect(302, '/account/groups');
-	redirect(302, '/');
+	if (!groupId) redirect(302, pendingRedirect !== '/' ? pendingRedirect : '/account/groups');
+	redirect(302, pendingRedirect !== '/' ? pendingRedirect : '/');
 };
