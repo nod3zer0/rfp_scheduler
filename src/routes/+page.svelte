@@ -4,7 +4,8 @@
 	import MemberChip from '$lib/components/MemberChip.svelte';
 	import NowPlaying from '$lib/components/NowPlaying.svelte';
 	import { toastStore } from '$lib/toast.svelte';
-	import { timeToMinutes } from '$lib/time.js';
+	import { timeToMinutes, nowMinutes } from '$lib/time.js';
+	import { getCurrentDay } from '$lib/days.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -179,34 +180,40 @@
 		}
 	}
 
-	// Mobile stage selector
-	let selectedStage = $state(STAGES[0]);
+	// ── Mobile timeline constants ──────────────────────────────
+	const PX_PER_MIN = 3;                          // pixels per minute
+	const TIMELINE_PX = GRID_TOTAL * PX_PER_MIN;  // 1020 * 3 = 3060 px
+	const STAGE_LABEL_W = 74;                      // px for sticky stage labels
+	const MOBILE_ROW_H = 72;                       // px per stage row
+	const MOBILE_HEADER_H = 28;                    // px for time header row
 
-	$effect(() => {
-		// reset stage when day changes
-		void data.day;
-		selectedStage = STAGES[0];
+	const mobileHourMarkers = Array.from({ length: 18 }, (_, i) => {
+		const totalMin = GRID_START + i * 60;
+		const h = Math.floor(totalMin / 60) % 24;
+		return { label: `${String(h).padStart(2, '0')}:00`, px: i * 60 * PX_PER_MIN };
 	});
 
-	const mobileBands = $derived(
-		data.schedule
-			.filter((s) => s.stage === selectedStage)
-			.sort((a, b) => timeToMinutes(a.timeStart) - timeToMinutes(b.timeStart))
-	);
+	function bandPxLeft(timeStart: string): number {
+		return (timeToMinutes(timeStart) - GRID_START) * PX_PER_MIN;
+	}
+	function bandPxWidth(timeStart: string, timeEnd: string): number {
+		const dur = timeToMinutes(timeEnd) - timeToMinutes(timeStart);
+		return Math.max(dur > 0 ? dur * PX_PER_MIN : 60 * PX_PER_MIN, 28) - 3;
+	}
 
-	// For mobile: all bands across all stages + events merged and sorted
-	type MobileItem =
-		| { kind: 'band'; id: string; band: string; stage: string; timeStart: string; timeEnd: string }
-		| { kind: 'event'; id: string; title: string; description: string | null; timeStart: string; timeEnd: string | null; attendees: Array<{ id: string; name: string }> };
-
-	const mobileAllItems = $derived<MobileItem[]>(
-		[
-			...mobileBands
-				.filter((b) => isBandVisible(b.id))
-				.map((b): MobileItem => ({ kind: 'band', id: b.id, band: b.band, stage: b.stage, timeStart: b.timeStart, timeEnd: b.timeEnd })),
-			...data.dayEvents.map((e): MobileItem => ({ kind: 'event', id: e.id, title: e.title, description: e.description, timeStart: e.timeStart, timeEnd: e.timeEnd, attendees: e.attendees }))
-		].sort((a, b) => timeToMinutes(a.timeStart) - timeToMinutes(b.timeStart))
-	);
+	// "Now" indicator line
+	let nowLinePx = $state<number | null>(null);
+	$effect(() => {
+		function update() {
+			if (data.day !== getCurrentDay()) { nowLinePx = null; return; }
+			const nm = nowMinutes();
+			if (nm < GRID_START || nm > GRID_END) { nowLinePx = null; return; }
+			nowLinePx = (nm - GRID_START) * PX_PER_MIN;
+		}
+		update();
+		const t = setInterval(update, 60_000);
+		return () => clearInterval(t);
+	});
 </script>
 
 <svelte:head>
@@ -337,104 +344,152 @@
 		<p class="mt-1 text-sm text-[var(--color-muted)]">Check back later or ask the admin to sync.</p>
 	</div>
 {:else}
-	<!-- ─── MOBILE: Stage selector + list ─────────────────────── -->
-	<div class="md:hidden">
-		<!-- Stage pills — sticky below filter bar; offset approximated, scrolls with content -->
-		<div class="border-b border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
-			<div class="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-				{#each STAGES as stage}
-					<button
-						type="button"
-						onclick={() => (selectedStage = stage)}
-						class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors {selectedStage === stage
-							? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-							: 'border-[var(--color-border)] text-[var(--color-muted)]'}"
-					>
-						{stage.replace(' Stage', '')}
-					</button>
-				{/each}
-			</div>
-		</div>
+	<!-- ─── MOBILE: 2D timeline grid ─────────────────────────── -->
+	<div class="md:hidden overflow-auto" style="height: calc(100dvh - 200px)">
+		<div style="min-width: {STAGE_LABEL_W + TIMELINE_PX}px">
 
-		<!-- Band list for selected stage (+ events mixed in) -->
-		{#if mobileAllItems.length === 0}
-			<p class="py-12 text-center text-sm text-[var(--color-muted)]">No bands for this stage today.</p>
-		{:else}
-			<div class="divide-y divide-[var(--color-border)]">
-				{#each mobileAllItems as item (item.id)}
-					{#if item.kind === 'event'}
-						{@const iAm = attendingIds.has(item.id)}
-						{@const toggling = attendToggles.has(item.id)}
-						<div class="flex items-start gap-3 bg-blue-950/15 px-4 py-3.5">
-							<div class="w-14 shrink-0 text-right">
-								<p class="text-sm font-semibold tabular-nums text-blue-300">{item.timeStart}</p>
-								{#if item.timeEnd}<p class="text-[11px] text-blue-400/70">{item.timeEnd}</p>{/if}
-							</div>
-							<div class="min-w-0 flex-1">
-								<p class="truncate font-semibold text-[var(--color-text)]">📅 {item.title}</p>
-								{#if item.description}
-									<p class="truncate text-xs text-[var(--color-muted)]">{item.description}</p>
+			<!-- Sticky time header row -->
+			<div
+				class="sticky top-0 z-30 flex border-b border-[var(--color-border)] bg-[var(--color-bg)]"
+				style="height: {MOBILE_HEADER_H}px"
+			>
+				<!-- Corner cell -->
+				<div
+					class="sticky left-0 z-40 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg)]"
+					style="width: {STAGE_LABEL_W}px"
+				></div>
+				<!-- Time labels + grid lines -->
+				<div class="relative shrink-0" style="width: {TIMELINE_PX}px">
+					{#each mobileHourMarkers as m}
+						<div
+							class="absolute bottom-1 -translate-x-1/2 text-[9px] leading-none text-[var(--color-muted)]"
+							style="left: {m.px}px"
+						>{m.label}</div>
+						<div
+							class="absolute top-0 bottom-0 border-l border-[var(--color-border)] opacity-30"
+							style="left: {m.px}px"
+						></div>
+					{/each}
+					<!-- "Now" indicator -->
+					{#if nowLinePx !== null}
+						<div
+							class="absolute top-0 bottom-0 w-px bg-red-500"
+							style="left: {nowLinePx}px"
+						></div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Group Events row -->
+			{#if data.dayEvents.length > 0}
+				<div
+					class="flex border-t border-blue-900/40 bg-blue-950/10"
+					style="height: {MOBILE_ROW_H}px"
+				>
+					<div
+						class="sticky left-0 z-10 shrink-0 flex items-center border-r border-blue-900/40 bg-blue-950/20 px-1.5"
+						style="width: {STAGE_LABEL_W}px"
+					>
+						<p class="text-[10px] font-semibold leading-tight text-blue-300">📅 Events</p>
+					</div>
+					<div class="relative shrink-0" style="width: {TIMELINE_PX}px; height: {MOBILE_ROW_H}px">
+						{#each mobileHourMarkers as m}
+							<div class="absolute top-0 bottom-0 border-l border-blue-900/20" style="left: {m.px}px"></div>
+						{/each}
+						{#if nowLinePx !== null}
+							<div class="absolute top-0 bottom-0 w-px bg-red-500/60" style="left: {nowLinePx}px"></div>
+						{/if}
+						{#each data.dayEvents as ev (ev.id)}
+							{@const iAm = attendingIds.has(ev.id)}
+							{@const isBusy = attendToggles.has(ev.id)}
+							{@const pxL = bandPxLeft(ev.timeStart)}
+							{@const pxW = ev.timeEnd ? bandPxWidth(ev.timeStart, ev.timeEnd) : 60 * PX_PER_MIN - 3}
+							<div
+								class="absolute top-1.5 flex flex-col overflow-hidden rounded border p-1 {iAm
+									? 'border-blue-500 bg-blue-900/60'
+									: 'border-blue-900/70 bg-blue-950/50'}"
+								style="left: {pxL}px; width: {pxW}px; height: calc(100% - 12px)"
+							>
+								<p class="truncate text-[10px] font-semibold leading-tight text-blue-200">{ev.title}</p>
+								<p class="text-[9px] tabular-nums text-blue-400">{ev.timeStart}</p>
+								{#if data.currentMemberId}
+									<button
+										type="button"
+										onclick={() => toggleAttend(ev.id)}
+										disabled={isBusy}
+										class="mt-auto self-start rounded border px-1 py-0.5 text-[9px] font-medium disabled:opacity-50 {iAm
+											? 'border-blue-600 text-blue-300'
+											: 'border-blue-800 text-blue-400'}"
+									>{iAm ? '✓' : '+'}</button>
 								{/if}
-								{#if item.attendees.length > 0}
-									<div class="mt-1 flex flex-wrap gap-0.5">
-										{#each item.attendees as att (att.id)}
-											<MemberChip name={att.name} size="sm" />
-										{/each}
-									</div>
-								{/if}
 							</div>
-							{#if data.currentMemberId}
-								<button
-									type="button"
-									onclick={() => toggleAttend(item.id)}
-									disabled={toggling}
-									class="mt-0.5 shrink-0 rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 {iAm
-										? 'border-blue-600 bg-blue-900/50 text-blue-300'
-										: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-blue-600 hover:text-blue-300'}"
-								>
-									{iAm ? '✓ In' : '+ Join'}
-								</button>
-							{/if}
-						</div>
-					{:else}
-						{@const isPicked = myPickIds.has(item.id)}
-						{@const muted = !isBandVisible(item.id)}
-						{@const bandPickers = (picksMap[item.id] ?? []).slice(0, 6)}
-						{@const overflow = Math.max(0, (picksMap[item.id] ?? []).length - 6)}
-						<button
-							type="button"
-							onclick={() => togglePick(item.id, item.band)}
-							class="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-[var(--color-surface)] {isPicked
-								? 'bg-[var(--color-accent)]/5'
-								: ''} {muted ? 'opacity-30' : ''} {toggling.has(item.id) ? 'opacity-60' : ''}"
-						>
-							<div class="w-14 shrink-0 text-right">
-								<p class="text-sm font-semibold tabular-nums text-[var(--color-text)]">{item.timeStart}</p>
-								<p class="text-[11px] text-[var(--color-muted)]">{item.timeEnd}</p>
-							</div>
-							<div class="min-w-0 flex-1">
-								<p class="truncate font-semibold leading-snug {isPicked ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]'}">
-									{item.band}
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Stage rows -->
+			{#each STAGES as stage}
+				{@const stageBands = data.schedule.filter((s) => s.stage === stage)}
+				<div
+					class="flex border-t border-[var(--color-border)]"
+					style="height: {MOBILE_ROW_H}px"
+				>
+					<!-- Sticky stage label -->
+					<div
+						class="sticky left-0 z-10 shrink-0 flex items-center border-r border-[var(--color-border)] bg-[var(--color-bg)] px-1.5"
+						style="width: {STAGE_LABEL_W}px"
+					>
+						<p class="text-[10px] font-semibold leading-tight text-[var(--color-muted)]">
+							{stage.replace(' Stage', '')}
+						</p>
+					</div>
+
+					<!-- Band track -->
+					<div class="relative shrink-0" style="width: {TIMELINE_PX}px; height: {MOBILE_ROW_H}px">
+						{#each mobileHourMarkers as m}
+							<div class="absolute top-0 bottom-0 border-l border-[var(--color-border)] opacity-15" style="left: {m.px}px"></div>
+						{/each}
+						{#if nowLinePx !== null}
+							<div class="absolute top-0 bottom-0 w-px bg-red-500/60" style="left: {nowLinePx}px"></div>
+						{/if}
+
+						{#each stageBands as band (band.id)}
+							{@const isPicked = myPickIds.has(band.id)}
+							{@const visible = isBandVisible(band.id)}
+							{@const pickers = (picksMap[band.id] ?? []).slice(0, 3)}
+							{@const pxL = bandPxLeft(band.timeStart)}
+							{@const pxW = bandPxWidth(band.timeStart, band.timeEnd)}
+							<button
+								type="button"
+								onclick={() => togglePick(band.id, band.band)}
+								title="{band.band} {band.timeStart}–{band.timeEnd}"
+								class="absolute top-1.5 flex flex-col overflow-hidden rounded p-1 text-left transition-all
+									{isPicked
+										? 'border-2 border-[var(--color-accent)] bg-[var(--color-accent)]/20'
+										: 'border border-[var(--color-border)] bg-[var(--color-surface)] active:bg-[var(--color-surface-2)]'}
+									{!visible ? 'opacity-15 saturate-0' : ''}
+									{toggling.has(band.id) ? 'opacity-60' : ''}"
+								style="left: {pxL}px; width: {pxW}px; height: calc(100% - 12px)"
+							>
+								<p class="truncate text-[10px] font-semibold leading-tight {isPicked ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]'}">
+									{band.band}
 								</p>
-								{#if bandPickers.length > 0}
-									<div class="mt-1 flex flex-wrap gap-0.5">
-										{#each bandPickers as picker (picker.id)}
+								<p class="text-[9px] tabular-nums leading-tight text-[var(--color-muted)]">{band.timeStart}</p>
+								{#if pickers.length > 0}
+									<div class="mt-0.5 flex gap-0.5">
+										{#each pickers as picker (picker.id)}
 											<MemberChip name={picker.name} size="sm" />
 										{/each}
-										{#if overflow > 0}
-											<span class="text-[10px] text-[var(--color-muted)]">+{overflow}</span>
-										{/if}
 									</div>
 								{/if}
-							</div>
-							<div class="shrink-0 text-xl leading-none {isPicked ? 'text-[var(--color-accent)]' : 'text-[var(--color-border)]'}">
-								{isPicked ? '★' : '☆'}
-							</div>
-						</button>
-					{/if}
-				{/each}
-			</div>
-		{/if}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+
+		</div>
 	</div>
 
 	<!-- ─── DESKTOP: Full grid ────────────────────────────────── -->

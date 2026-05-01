@@ -131,4 +131,14 @@
 	{/if}
 </div>
 
+<footer class="border-t border-[var(--color-border)] px-4 py-4 text-center text-xs text-[var(--color-muted)] sm:pb-4 pb-20">
+	© {new Date().getFullYear()} René Česka ·
+	<a
+		href="https://github.com/nod3zer0/rfp_scheduler"
+		target="_blank"
+		rel="noopener noreferrer"
+		class="hover:text-[var(--color-text)] transition-colors"
+	>github.com/nod3zer0/rfp_scheduler</a>
+</footer>
+
 <Toast />
