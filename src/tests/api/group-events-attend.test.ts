@@ -30,7 +30,7 @@ describe('POST /api/group-events/[id]/attend', () => {
 		const { db } = createTestDb();
 		testDb = db;
 
-		db.insert(groups).values({ id: 'g1', name: 'G', adminPasswordHash: 'h', createdAt: NOW }).run();
+		db.insert(groups).values({ id: 'g1', name: 'G', createdAt: NOW }).run();
 		db.insert(members).values({ id: 'm1', groupId: 'g1', name: 'Alice', userId: null, createdAt: NOW }).run();
 		db.insert(groupEvents).values({ id: 'e1', groupId: 'g1', title: 'Lunch', day: 'wednesday', date: '2026-06-10', timeStart: '12:00', createdAt: NOW }).run();
 
@@ -45,7 +45,7 @@ describe('POST /api/group-events/[id]/attend', () => {
 	});
 
 	it('throws 404 for an event in a different group', () => {
-		const otherGroup: Group = { id: 'g2', name: 'Other', adminPasswordHash: 'h', allowGuests: true, createdAt: NOW };
+		const otherGroup: Group = { id: 'g2', name: 'Other', createdByUserId: null, createdAt: NOW };
 		expect(() => call({ id: 'e1' }, member, otherGroup)).toThrow(
 			expect.objectContaining({ status: 404 })
 		);

@@ -17,9 +17,24 @@
 		day: string;
 	};
 
+	type GroupMember = { id: string; name: string };
+
+	import MemberChip from '$lib/components/MemberChip.svelte';
 	import { timeToMinutes, nowMinutes, formatCountdown } from '$lib/time.js';
 
-	let { picks = [], events = [] }: { picks?: PickItem[]; events?: EventItem[] } = $props();
+	let {
+		picks = [],
+		events = [],
+		picksMap = {},
+		groupMembers = [],
+		currentMemberId = null
+	}: {
+		picks?: PickItem[];
+		events?: EventItem[];
+		picksMap?: Record<string, GroupMember[]>;
+		groupMembers?: GroupMember[];
+		currentMemberId?: string | null;
+	} = $props();
 
 	type Status = 'now' | 'soon' | 'upcoming';
 	type Card = {
@@ -30,6 +45,7 @@
 		kind: 'pick' | 'event';
 		status: Status;
 		minutesAway: number;
+		friends: GroupMember[];
 	};
 
 	let now = $state(nowMinutes());
@@ -38,8 +54,10 @@
 		[
 			...picks.map((p): Card => {
 				const start = timeToMinutes(p.timeStart);
-				const end = timeToMinutes(p.timeEnd) + 0;
+				const end = timeToMinutes(p.timeEnd);
 				const away = start - now;
+				const allPickers = picksMap[p.id] ?? [];
+				const friends = allPickers.filter((m) => m.id !== currentMemberId);
 				return {
 					id: p.id,
 					title: p.band,
@@ -47,7 +65,8 @@
 					timeStart: p.timeStart,
 					kind: 'pick',
 					status: now >= start && now <= end ? 'now' : away > 0 && away <= 90 ? 'soon' : 'upcoming',
-					minutesAway: away
+					minutesAway: away,
+					friends
 				};
 			}),
 			...events.map((e): Card => {
@@ -61,14 +80,15 @@
 					timeStart: e.timeStart,
 					kind: 'event',
 					status: now >= start && now <= end ? 'now' : away > 0 && away <= 90 ? 'soon' : 'upcoming',
-					minutesAway: away
+					minutesAway: away,
+					friends: []
 				};
 			})
 		]
 			.filter((c) => {
 				const end =
 					c.kind === 'pick'
-						? timeToMinutes((picks.find((p) => p.id === c.id)?.timeEnd) ?? c.timeStart) + 0
+						? timeToMinutes((picks.find((p) => p.id === c.id)?.timeEnd) ?? c.timeStart)
 						: c.kind === 'event'
 							? (events.find((e) => `ev-${e.id}` === c.id)?.timeEnd
 									? timeToMinutes(events.find((e) => `ev-${e.id}` === c.id)!.timeEnd!)
@@ -103,7 +123,7 @@
 							: card.status === 'soon'
 								? 'border-yellow-700/60 bg-yellow-950/30'
 								: 'border-[var(--color-border)] bg-[var(--color-bg)]'}"
-					style="min-width: 150px; max-width: 190px"
+					style="min-width: 150px; max-width: 200px"
 				>
 					{#if card.status === 'now'}
 						<span class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider {card.kind === 'event' ? 'text-blue-400' : 'text-[var(--color-accent)]'}">
@@ -119,6 +139,16 @@
 						{#if card.kind === 'event'}<span class="mr-1">📅</span>{/if}{card.title}
 					</p>
 					<p class="truncate text-[11px] text-[var(--color-muted)]">{card.sub}</p>
+					{#if card.friends.length > 0}
+						<div class="mt-1 flex items-center gap-0.5">
+							{#each card.friends.slice(0, 5) as friend (friend.id)}
+								<MemberChip name={friend.name} size="sm" />
+							{/each}
+							{#if card.friends.length > 5}
+								<span class="text-[10px] text-[var(--color-muted)]">+{card.friends.length - 5}</span>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			{/each}
 		</div>

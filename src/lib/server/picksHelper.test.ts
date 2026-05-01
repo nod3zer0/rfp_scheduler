@@ -26,7 +26,7 @@ const NOW = new Date().toISOString();
 
 function seedGroup(db: typeof testDb, id = 'g1', name = 'Test Group') {
 	db.insert(groups)
-		.values({ id, name, adminPasswordHash: 'hash', allowGuests: true, createdAt: NOW })
+		.values({ id, name, createdAt: NOW })
 		.run();
 	return id;
 }

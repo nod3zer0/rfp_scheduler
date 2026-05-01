@@ -20,7 +20,7 @@ export const load: LayoutServerLoad = ({ locals }) => {
 		member: locals.member,
 		group: locals.group,
 		user: locals.user
-			? { id: locals.user.id, name: locals.user.name, facebookId: locals.user.facebookId ?? null }
+			? { id: locals.user.id, name: locals.user.name, pictureUrl: locals.user.pictureUrl ?? null }
 			: null,
 		myGroups
 	};

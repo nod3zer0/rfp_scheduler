@@ -4,19 +4,22 @@ import { db } from '$lib/server/db.js';
 import { groups, inviteLinks, members, picks } from '$lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import bcrypt from 'bcrypt';
 
-const COOKIE_NAME = (groupId: string) => `rfp_group_auth_${groupId}`;
+function assertCreator(group: typeof groups.$inferSelect, locals: App.Locals) {
+	if (!locals.user || locals.user.id !== group.createdByUserId) {
+		throw error(403, 'Only the group creator can manage this group');
+	}
+}
 
-export const load: PageServerLoad = async ({ params, cookies, url }) => {
+export const load: PageServerLoad = ({ params, locals, url }) => {
 	const group = db.select().from(groups).where(eq(groups.id, params.id)).get();
 	if (!group) throw error(404, 'Group not found');
 
-	const authenticated = cookies.get(COOKIE_NAME(params.id)) === '1';
+	const isCreator = !!locals.user && locals.user.id === group.createdByUserId;
 	const isNew = url.searchParams.get('new') === '1';
 
-	if (!authenticated) {
-		return { group: { id: group.id, name: group.name, allowGuests: group.allowGuests }, authenticated: false, isNew, links: [], members: [] };
+	if (!isCreator) {
+		return { group: { id: group.id, name: group.name }, isCreator: false, isNew, links: [], members: [] };
 	}
 
 	const links = db.select().from(inviteLinks).where(eq(inviteLinks.groupId, params.id)).all();
@@ -34,8 +37,8 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
 	}));
 
 	return {
-		group: { id: group.id, name: group.name, allowGuests: group.allowGuests },
-		authenticated: true,
+		group: { id: group.id, name: group.name },
+		isCreator: true,
 		isNew,
 		links,
 		members: membersWithCounts
@@ -43,22 +46,10 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
 };
 
 export const actions: Actions = {
-	login: async ({ params, request, cookies }) => {
-		const form = await request.formData();
-		const password = form.get('password') as string;
-
+	createLink: async ({ params, locals, request }) => {
 		const group = db.select().from(groups).where(eq(groups.id, params.id)).get();
 		if (!group) throw error(404, 'Group not found');
-
-		const valid = await bcrypt.compare(password, group.adminPasswordHash);
-		if (!valid) return fail(403, { loginError: 'Wrong password' });
-
-		cookies.set(COOKIE_NAME(params.id), '1', { path: '/', maxAge: 60 * 60 * 8, sameSite: 'lax', httpOnly: true });
-		return { authenticated: true };
-	},
-
-	createLink: async ({ params, cookies, request }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
+		assertCreator(group, locals);
 
 		const form = await request.formData();
 		const expiresAt = (form.get('expiresAt') as string)?.trim() || null;
@@ -80,8 +71,10 @@ export const actions: Actions = {
 		return { linkCreated: true };
 	},
 
-	revokeLink: async ({ params, cookies, request }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
+	revokeLink: async ({ params, locals, request }) => {
+		const group = db.select().from(groups).where(eq(groups.id, params.id)).get();
+		if (!group) throw error(404, 'Group not found');
+		assertCreator(group, locals);
 
 		const form = await request.formData();
 		const linkId = form.get('linkId') as string;
@@ -90,19 +83,22 @@ export const actions: Actions = {
 		return { revoked: true };
 	},
 
-	removeMember: async ({ params, cookies, request }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
+	removeMember: async ({ params, locals, request }) => {
+		const group = db.select().from(groups).where(eq(groups.id, params.id)).get();
+		if (!group) throw error(404, 'Group not found');
+		assertCreator(group, locals);
 
 		const form = await request.formData();
 		const memberId = form.get('memberId') as string;
 
-		// picks cascade on delete
 		db.delete(members).where(eq(members.id, memberId)).run();
 		return { memberRemoved: true };
 	},
 
-	renameGroup: async ({ params, cookies, request }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
+	renameGroup: async ({ params, locals, request }) => {
+		const group = db.select().from(groups).where(eq(groups.id, params.id)).get();
+		if (!group) throw error(404, 'Group not found');
+		assertCreator(group, locals);
 
 		const form = await request.formData();
 		const name = (form.get('name') as string)?.trim();
@@ -112,35 +108,12 @@ export const actions: Actions = {
 		return { renamed: true };
 	},
 
-	changePassword: async ({ params, cookies, request }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
+	deleteGroup: async ({ params, locals }) => {
+		const group = db.select().from(groups).where(eq(groups.id, params.id)).get();
+		if (!group) throw error(404, 'Group not found');
+		assertCreator(group, locals);
 
-		const form = await request.formData();
-		const password = form.get('password') as string;
-		const confirm = form.get('confirm') as string;
-		if (!password || password !== confirm) return fail(400, { error: 'Passwords do not match' });
-		if (password.length < 4) return fail(400, { error: 'Password must be at least 4 characters' });
-
-		const hash = await bcrypt.hash(password, 10);
-		db.update(groups).set({ adminPasswordHash: hash }).where(eq(groups.id, params.id)).run();
-		return { passwordChanged: true };
-	},
-
-	toggleGuests: async ({ params, cookies, request }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
-
-		const form = await request.formData();
-		const allow = form.get('allowGuests') === '1';
-		db.update(groups).set({ allowGuests: allow }).where(eq(groups.id, params.id)).run();
-		return { guestsToggled: true };
-	},
-
-	deleteGroup: async ({ params, cookies }) => {
-		if (cookies.get(COOKIE_NAME(params.id)) !== '1') return fail(403, { error: 'Not authorized' });
-
-		// cascades to members, inviteLinks
 		db.delete(groups).where(eq(groups.id, params.id)).run();
-		cookies.delete(COOKIE_NAME(params.id), { path: '/' });
 		redirect(303, '/');
 	}
 };

@@ -3,7 +3,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db.js';
 import { groups, inviteLinks, members } from '$lib/server/schema.js';
 import { nanoid } from 'nanoid';
-import bcrypt from 'bcrypt';
 
 export const load: PageServerLoad = ({ locals }) => {
 	if (!locals.user) redirect(303, '/account/login?redirect=/groups/new');
@@ -16,19 +15,13 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const name = (form.get('name') as string)?.trim();
-		const password = form.get('password') as string;
-		const confirm = form.get('confirm') as string;
 
 		if (!name) return fail(400, { error: 'Group name is required' });
-		if (!password) return fail(400, { error: 'Admin password is required' });
-		if (password !== confirm) return fail(400, { error: 'Passwords do not match' });
-		if (password.length < 4) return fail(400, { error: 'Password must be at least 4 characters' });
 
 		const groupId = nanoid(10);
-		const adminPasswordHash = await bcrypt.hash(password, 10);
 		const now = new Date().toISOString();
 
-		db.insert(groups).values({ id: groupId, name, adminPasswordHash, createdAt: now }).run();
+		db.insert(groups).values({ id: groupId, name, createdByUserId: locals.user.id, createdAt: now }).run();
 
 		// Auto-create member for the registering user
 		const memberId = nanoid(10);

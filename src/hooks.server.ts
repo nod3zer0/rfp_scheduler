@@ -25,7 +25,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const identity = JSON.parse(decodeURIComponent(identityCookie)) as IdentityCookie;
 
 			if (identity.userId) {
-				// Registered user path
 				const user = db.select().from(users).where(eq(users.id, identity.userId)).get();
 				if (user) {
 					event.locals.user = user;
@@ -34,7 +33,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 						const group = db.select().from(groups).where(eq(groups.id, identity.groupId)).get();
 						if (group) {
 							event.locals.group = group;
-							// Find their member record in this group
 							const member = db
 								.select()
 								.from(members)
@@ -43,15 +41,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 							event.locals.member = member ?? null;
 						}
 					}
-				}
-			} else if (identity.memberId && identity.groupId) {
-				// Guest path (legacy / unregistered)
-				const member = db.select().from(members).where(eq(members.id, identity.memberId)).get();
-				if (member && member.groupId === identity.groupId && !member.userId) {
-					// Only allow guest access to members that are NOT registered
-					const group = db.select().from(groups).where(eq(groups.id, identity.groupId)).get();
-					event.locals.member = member ?? null;
-					event.locals.group = group ?? null;
 				}
 			}
 		} catch {

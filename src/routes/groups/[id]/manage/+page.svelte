@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
 	import type { PageData, ActionData } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data }: { data: PageData; form: ActionData } = $props();
 
 	let origin = $state('');
 	$effect(() => {
@@ -49,28 +48,9 @@
 		</div>
 	{/if}
 
-	{#if !data.authenticated}
-		<!-- Login form -->
-		<div class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-			<h2 class="mb-4 text-lg font-semibold">Admin access required</h2>
-			{#if form?.loginError}
-				<p class="mb-3 text-sm text-red-400">{form.loginError}</p>
-			{/if}
-			<form method="post" action="?/login" class="flex flex-col gap-3">
-				<input
-					name="password"
-					type="password"
-					required
-					placeholder="Admin password"
-					class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-				/>
-				<button
-					type="submit"
-					class="rounded-md bg-[var(--color-accent)] px-4 py-2 font-medium text-white hover:bg-[var(--color-accent-hover)]"
-				>
-					Unlock
-				</button>
-			</form>
+	{#if !data.isCreator}
+		<div class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
+			<p class="text-[var(--color-muted)]">Only the group creator can manage this group.</p>
 		</div>
 	{:else}
 		<!-- Invite Links -->
@@ -229,60 +209,6 @@
 						Rename
 					</button>
 				</form>
-
-				<form method="post" action="?/changePassword" class="flex flex-wrap gap-3">
-					<input
-						name="password"
-						type="password"
-						required
-						placeholder="New admin password"
-						class="flex-1 min-w-36 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-					/>
-					<input
-						name="confirm"
-						type="password"
-						required
-						placeholder="Confirm password"
-						class="flex-1 min-w-36 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-					/>
-					<button
-						type="submit"
-						class="rounded-md border border-[var(--color-border)] px-3 py-2 text-sm hover:border-[var(--color-muted)]"
-					>
-						Change password
-					</button>
-				</form>
-			</div>
-		</section>
-
-		<!-- Guest access toggle -->
-		<section class="mb-8">
-			<h2 class="mb-3 text-lg font-semibold text-[var(--color-text)]">Access</h2>
-			<div class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-				<div class="flex items-start justify-between gap-4">
-					<div>
-						<p class="font-medium text-[var(--color-text)]">Allow unregistered guests</p>
-						<p class="mt-0.5 text-sm text-[var(--color-muted)]">
-							When enabled, anyone with an invite link can join without an account by just picking a name.
-							Disable this to require all members to have a registered account.
-						</p>
-					</div>
-					<form method="post" action="?/toggleGuests" class="shrink-0">
-						<input type="hidden" name="allowGuests" value={data.group.allowGuests ? '0' : '1'} />
-						<button
-							type="submit"
-							aria-label={data.group.allowGuests ? 'Disable guest access' : 'Enable guest access'}
-							class="relative inline-flex h-7 w-12 items-center rounded-full transition-colors {data.group.allowGuests ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'}"
-						>
-							<span class="inline-block h-5 w-5 translate-x-1 rounded-full bg-white shadow transition-transform {data.group.allowGuests ? 'translate-x-6' : 'translate-x-1'}"></span>
-						</button>
-					</form>
-				</div>
-				{#if !data.group.allowGuests}
-					<p class="mt-3 rounded-md bg-yellow-950/30 px-3 py-2 text-xs text-yellow-300">
-						⚠️ Guests joining via invite link will be blocked. Only registered accounts can join.
-					</p>
-				{/if}
 			</div>
 		</section>
 

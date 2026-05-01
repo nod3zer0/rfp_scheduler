@@ -30,7 +30,7 @@ describe('POST /api/group-events', () => {
 		const { db } = createTestDb();
 		testDb = db;
 
-		db.insert(groups).values({ id: 'g1', name: 'G', adminPasswordHash: 'h', createdAt: NOW }).run();
+		db.insert(groups).values({ id: 'g1', name: 'G', createdAt: NOW }).run();
 		db.insert(members).values({ id: 'm1', groupId: 'g1', name: 'Alice', userId: null, createdAt: NOW }).run();
 
 		group = db.select().from(groups).get()!;

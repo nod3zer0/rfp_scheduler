@@ -1,27 +1,10 @@
 <script lang="ts">
 	import '../app.css';
 	import Toast from '$lib/components/Toast.svelte';
-	import ChangeNameModal from '$lib/components/ChangeNameModal.svelte';
 	import MemberChip from '$lib/components/MemberChip.svelte';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
-
-	let nameModalOpen = $state(false);
-	let guestBannerDismissed = $state(false);
-
-	function dismissBanner() {
-		guestBannerDismissed = true;
-		try { sessionStorage.setItem('rfp_guest_banner_dismissed', '1'); } catch {}
-	}
-
-	$effect(() => {
-		try {
-			if (sessionStorage.getItem('rfp_guest_banner_dismissed') === '1') {
-				guestBannerDismissed = true;
-			}
-		} catch {}
-	});
 
 	// Switch active group for registered users
 	async function switchGroup(groupId: string, memberId: string) {
@@ -41,7 +24,6 @@
 			</a>
 
 			{#if data.group}
-				<!-- Group switcher for registered users in multiple groups -->
 				{#if data.user && data.myGroups.length > 1}
 					<div class="relative hidden sm:block">
 						<details class="group/sw">
@@ -74,24 +56,17 @@
 					{#if data.group}
 						<a href="/groups/{data.group.id}/manage" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">Manage</a>
 					{/if}
-				{:else if !data.user}
-					<a href="/groups/new" class="hidden rounded-md border border-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-white sm:inline-block">
-						+ Create group
-					</a>
 				{/if}
 
-				<!-- Identity button -->
 				{#if data.user}
-					<!-- Registered user: dropdown with settings + groups + logout -->
 					<details class="group/id relative">
-				<summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-muted)] hover:bg-[var(--color-surface)]">
-						<MemberChip
-							name={data.user.name}
-							size="sm"
-							avatarUrl={data.user.facebookId ? `https://graph.facebook.com/${data.user.facebookId}/picture?type=square&width=64` : undefined}
-						/>
-						<span class="max-w-[120px] truncate">{data.user.name}</span>
-							<span class="text-[10px] text-[var(--color-muted)]">🔒</span>
+						<summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-muted)] hover:bg-[var(--color-surface)]">
+							<MemberChip
+								name={data.user.name}
+								size="sm"
+								avatarUrl={data.user.pictureUrl ?? undefined}
+							/>
+							<span class="max-w-[120px] truncate">{data.user.name}</span>
 							<span class="text-[var(--color-muted)]">▾</span>
 						</summary>
 						<div class="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg">
@@ -112,67 +87,48 @@
 							</form>
 						</div>
 					</details>
-				{:else if data.member}
-					<!-- Guest with identity -->
-					<button
-						type="button"
-						class="flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-muted)] hover:bg-[var(--color-surface)]"
-						onclick={() => (nameModalOpen = true)}
-					>
-						<MemberChip name={data.member.name} size="sm" />
-						<span class="max-w-[120px] truncate">{data.member.name}</span>
-						<span class="text-[var(--color-muted)]">▾</span>
-					</button>
 				{:else}
-					<!-- No identity -->
-					<a href="/account/login" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">
-						Sign in
+					<a href="/account/login" class="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">Sign in</a>
+					<a href="/account/register" class="rounded-md border border-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-white">
+						Register
 					</a>
-					<button
-						type="button"
-						class="flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-muted)] transition-colors hover:border-[var(--color-muted)] hover:text-[var(--color-text)]"
-						onclick={() => (nameModalOpen = true)}
-					>
-						👤 Set name ▾
-					</button>
 				{/if}
 			</div>
 		</div>
 	</nav>
 
-	<!-- Guest banner -->
-	{#if !data.member && !data.user && !guestBannerDismissed}
-		<div class="border-b border-yellow-900/50 bg-yellow-950/30 px-4 py-2.5 text-center text-sm text-yellow-200">
-			You're viewing as a guest.
-			<a href="/groups/new" class="mx-1 underline underline-offset-2 hover:text-white">Create a group</a>
-			or join one via an invite link to mark your picks.
-			<button type="button" class="ml-2 rounded px-1.5 text-yellow-400 hover:text-yellow-200" onclick={dismissBanner} aria-label="Dismiss banner">×</button>
-		</div>
-	{/if}
-
-	<!-- Logged-in but not in a group banner -->
-	{#if data.user && !data.group && !guestBannerDismissed}
+	<!-- Logged-in but not in a group yet -->
+	{#if data.user && !data.group}
 		<div class="border-b border-blue-900/50 bg-blue-950/30 px-4 py-2.5 text-center text-sm text-blue-200">
 			You're logged in as <strong>{data.user.name}</strong> but not in any group yet.
 			<a href="/groups/new" class="mx-1 underline underline-offset-2 hover:text-white">Create a group</a>
 			or join one via an invite link.
-			<button type="button" class="ml-2 rounded px-1.5 text-blue-400 hover:text-blue-200" onclick={dismissBanner} aria-label="Dismiss banner">×</button>
 		</div>
 	{/if}
 
-	<main class="flex-1">
+	<main class="flex-1 pb-16 sm:pb-0">
 		{@render children()}
 	</main>
-</div>
 
-{#if nameModalOpen}
-	<ChangeNameModal
-		open={nameModalOpen}
-		onclose={() => (nameModalOpen = false)}
-		groupId={data.group?.id ?? ''}
-		currentMemberId={data.member?.id}
-		currentUserId={data.user?.id}
-	/>
-{/if}
+	<!-- Mobile bottom navigation -->
+	{#if data.member}
+		<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-bg)] sm:hidden">
+			<div class="flex">
+				<a href="/" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
+					<span class="text-xl">🗓</span>
+					<span class="text-[10px] font-medium">Schedule</span>
+				</a>
+				<a href="/overview" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
+					<span class="text-xl">👥</span>
+					<span class="text-[10px] font-medium">Overview</span>
+				</a>
+				<a href="/friends" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
+					<span class="text-xl">⭐</span>
+					<span class="text-[10px] font-medium">Friends</span>
+				</a>
+			</div>
+		</nav>
+	{/if}
+</div>
 
 <Toast />

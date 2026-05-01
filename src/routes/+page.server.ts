@@ -36,13 +36,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Today's my picks (for NowPlaying strip)
 	let myTodayPicks: Array<{ id: string; band: string; stage: string; timeStart: string; timeEnd: string; date: string; day: string }> = [];
+	let todayPicksMap: Record<string, Array<{ id: string; name: string }>> = {};
 	if (locals.member && myPickIds.length > 0) {
 		const todayDay = getCurrentDay();
 		const todaySchedule = db.select().from(schedule).where(eq(schedule.day, todayDay)).all().filter((s) => myPickIds.includes(s.id));
 		myTodayPicks = todaySchedule.map((s) => ({ id: s.id, band: s.band, stage: s.stage, timeStart: s.timeStart, timeEnd: s.timeEnd, date: s.date, day: s.day }));
+		// Build a picks map for today (who else is attending each band) for NowPlaying
+		const todayIds = todaySchedule.map((s) => s.id);
+		todayPicksMap = buildPicksMap(todayIds, groupMembers);
 	}
 
-	// Today's group events for NowPlaying strip (always today, time-aware)
+	// Today's group events for NowPlaying strip (always today, time-aware) — only during the festival
 	let myTodayEvents: Array<{ id: string; title: string; timeStart: string; timeEnd: string | null; day: string }> = [];
 	// Selected day's group events (with attendees) to show on the main page
 	type DayEvent = {
@@ -114,6 +118,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		myPickIds,
 		myTodayPicks,
 		myTodayEvents,
+		todayPicksMap,
 		dayEvents,
 		memberFilter,
 		groupMembers: groupMembers.map((m) => ({ id: m.id, name: m.name })),

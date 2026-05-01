@@ -29,7 +29,7 @@ describe('POST /api/picks', () => {
 		const { db } = createTestDb();
 		testDb = db;
 
-		db.insert(groups).values({ id: 'g1', name: 'G', adminPasswordHash: 'h', createdAt: NOW }).run();
+		db.insert(groups).values({ id: 'g1', name: 'G', createdAt: NOW }).run();
 		db.insert(members).values({ id: 'm1', groupId: 'g1', name: 'Alice', userId: null, createdAt: NOW }).run();
 		db.insert(schedule).values({ id: 's1', band: 'Band A', day: 'wednesday', stage: 'Main', date: '2026-06-10', timeStart: '14:00', timeEnd: '15:00', updatedAt: NOW }).run();
 

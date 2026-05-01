@@ -44,27 +44,6 @@
 			/>
 		</label>
 
-		<label class="block">
-			<span class="mb-1 block text-sm font-medium text-[var(--color-muted)]">Admin password</span>
-			<input
-				name="password"
-				type="password"
-				required
-				placeholder="For managing the group later"
-				class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-			/>
-		</label>
-
-		<label class="block">
-			<span class="mb-1 block text-sm font-medium text-[var(--color-muted)]">Confirm password</span>
-			<input
-				name="confirm"
-				type="password"
-				required
-				class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-			/>
-		</label>
-
 		<button
 			type="submit"
 			disabled={submitting}

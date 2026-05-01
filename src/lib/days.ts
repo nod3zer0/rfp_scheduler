@@ -32,3 +32,9 @@ export function getCurrentDay(): Day {
 	const found = (Object.entries(DAY_DATES) as [Day, string][]).find(([, d]) => d === date);
 	return found ? found[0] : 'wednesday';
 }
+
+/** Returns true only when today is an actual festival day. */
+export function isInFestival(): boolean {
+	const today = new Date().toISOString().slice(0, 10);
+	return today >= '2026-06-10' && today <= '2026-06-14';
+}

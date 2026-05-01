@@ -1,15 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db.js';
-import { users, members } from '$lib/server/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { users } from '$lib/server/schema.js';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const load: PageServerLoad = ({ cookies }) => {
 	const raw = cookies.get('fb_pending');
 	if (!raw) redirect(303, '/account/login');
 
-	const pending = JSON.parse(raw) as { facebookId: string; suggestedName: string };
+	const pending = JSON.parse(raw) as { facebookId: string; suggestedName: string; pictureUrl?: string | null };
 	return { suggestedName: pending.suggestedName };
 };
 
@@ -18,7 +18,7 @@ export const actions: Actions = {
 		const raw = cookies.get('fb_pending');
 		if (!raw) throw error(400, 'Session expired. Please try signing in with Facebook again.');
 
-		const pending = JSON.parse(raw) as { facebookId: string; suggestedName: string };
+		const pending = JSON.parse(raw) as { facebookId: string; suggestedName: string; pictureUrl?: string | null };
 		const form = await request.formData();
 		const name = (form.get('name') as string)?.trim();
 		if (!name) return fail(400, { error: 'Name is required' });
@@ -29,18 +29,20 @@ export const actions: Actions = {
 
 		const userId = nanoid(12);
 		db.insert(users)
-			.values({ id: userId, name, facebookId: pending.facebookId, passwordHash: null, createdAt: new Date().toISOString() })
+			.values({
+				id: userId,
+				name,
+				facebookId: pending.facebookId,
+				pictureUrl: pending.pictureUrl ?? null,
+				passwordHash: null,
+				createdAt: new Date().toISOString()
+			})
 			.run();
 
 		cookies.delete('fb_pending', { path: '/' });
 
-		// Link current guest member if present
-		if (locals.member && !locals.member.userId) {
-			db.update(members).set({ userId, name }).where(eq(members.id, locals.member.id)).run();
-		}
-
-		const groupId = locals.group?.id ?? '';
-		const memberId = locals.member?.id ?? '';
+		const groupId = '';
+		const memberId = '';
 		const payload = JSON.stringify({ userId, memberId, groupId });
 		cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
 

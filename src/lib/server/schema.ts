@@ -5,15 +5,16 @@ export const users = sqliteTable('users', {
 	name: text('name').notNull(),
 	passwordHash: text('password_hash'), // nullable for OAuth-only users
 	facebookId: text('facebook_id'),
+	pictureUrl: text('picture_url'),
 	createdAt: text('created_at').notNull()
 });
 
 export const groups = sqliteTable('groups', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
-	adminPasswordHash: text('admin_password_hash').notNull(),
-	allowGuests: integer('allow_guests', { mode: 'boolean' }).notNull().default(true),
+	createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
 	createdAt: text('created_at').notNull()
+	// note: admin_password_hash and allow_guests columns still exist in DB but are no longer used
 });
 
 export const members = sqliteTable('members', {

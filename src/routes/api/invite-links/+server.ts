@@ -4,24 +4,23 @@ import { db } from '$lib/server/db.js';
 import { groups, inviteLinks } from '$lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import bcrypt from 'bcrypt';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	const body = await request.json() as {
 		groupId?: string;
-		adminPassword?: string;
 		expiresAt?: string;
 		maxUses?: number;
 	};
 
-	const { groupId, adminPassword, expiresAt, maxUses } = body;
-	if (!groupId || !adminPassword) throw error(400, 'groupId and adminPassword required');
+	const { groupId, expiresAt, maxUses } = body;
+	if (!groupId) throw error(400, 'groupId required');
 
 	const group = db.select().from(groups).where(eq(groups.id, groupId)).get();
 	if (!group) throw error(404, 'Group not found');
 
-	const valid = await bcrypt.compare(adminPassword, group.adminPasswordHash);
-	if (!valid) throw error(403, 'Invalid password');
+	if (!locals.user || locals.user.id !== group.createdByUserId) {
+		throw error(403, 'Only the group creator can manage invite links');
+	}
 
 	const id = nanoid(12);
 	const link = db

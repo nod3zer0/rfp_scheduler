@@ -21,15 +21,25 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	// Exchange code for tokens
 	let facebookUserId: string;
 	let facebookName: string;
+	let facebookPictureUrl: string | null = null;
 	try {
 		const tokens = await fb.validateAuthorizationCode(code);
 		const accessToken = tokens.accessToken();
 
-		const profileRes = await fetch(`https://graph.facebook.com/me?fields=id,name&access_token=${accessToken}`);
+		const profileRes = await fetch(
+			`https://graph.facebook.com/me?fields=id,name,picture.type(large).width(400)&access_token=${accessToken}`
+		);
 		if (!profileRes.ok) throw new Error('Failed to fetch Facebook profile');
-		const profile = await profileRes.json() as { id: string; name: string };
+		const profile = await profileRes.json() as {
+			id: string;
+			name: string;
+			picture?: { data: { url: string; is_silhouette: boolean } };
+		};
 		facebookUserId = profile.id;
 		facebookName = profile.name;
+		if (profile.picture?.data && !profile.picture.data.is_silhouette) {
+			facebookPictureUrl = profile.picture.data.url;
+		}
 	} catch {
 		throw error(400, 'Facebook authentication failed');
 	}
@@ -40,9 +50,13 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	let userId: string;
 	if (existingUser) {
 		userId = existingUser.id;
+		// Refresh picture URL on every login in case it changed
+		if (facebookPictureUrl) {
+			db.update(users).set({ pictureUrl: facebookPictureUrl }).where(eq(users.id, userId)).run();
+		}
 	} else {
 		// Store Facebook data in a short-lived cookie and redirect to name-confirm page
-		const pending = JSON.stringify({ facebookId: facebookUserId, suggestedName: facebookName });
+		const pending = JSON.stringify({ facebookId: facebookUserId, suggestedName: facebookName, pictureUrl: facebookPictureUrl });
 		cookies.set('fb_pending', pending, {
 			path: '/',
 			httpOnly: true,

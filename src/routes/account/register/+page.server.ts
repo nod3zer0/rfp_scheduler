@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db.js';
-import { users, members } from '$lib/server/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { users } from '$lib/server/schema.js';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { nanoid } from 'nanoid';
 
@@ -36,14 +36,9 @@ export const actions: Actions = {
 
 		db.insert(users).values({ id: userId, name, passwordHash, createdAt: new Date().toISOString() }).run();
 
-		// If the visitor currently has a guest member, link it to the new account
-		if (locals.member && !locals.member.userId) {
-			db.update(members).set({ userId, name }).where(eq(members.id, locals.member.id)).run();
-		}
-
-		// Set cookie: userId + keep existing group context
-		const groupId = locals.group?.id ?? '';
-		const memberId = locals.member?.id ?? '';
+		// Set cookie with userId (no group yet)
+		const groupId = '';
+		const memberId = '';
 		const payload = JSON.stringify({ userId, memberId, groupId });
 		cookies.set('rfp_identity', payload, {
 			path: '/',

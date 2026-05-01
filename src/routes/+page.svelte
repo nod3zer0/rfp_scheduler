@@ -214,8 +214,14 @@
 </svelte:head>
 
 
-{#if data.myTodayPicks.length > 0 || data.dayEvents.length > 0}
-	<NowPlaying picks={data.myTodayPicks} events={data.dayEvents} />
+{#if data.myTodayPicks.length > 0 || data.myTodayEvents.length > 0}
+	<NowPlaying
+		picks={data.myTodayPicks}
+		events={data.myTodayEvents}
+		picksMap={data.todayPicksMap}
+		groupMembers={data.groupMembers}
+		currentMemberId={data.currentMemberId}
+	/>
 {/if}
 
 <!-- Day tabs -->
