@@ -3,6 +3,8 @@
 Coordinate Rock for People 2026 festival plans with your friend group.  
 Track the full schedule, pick the bands you want to see, and see what your friends are going to.
 
+**Progressive Web App** — Install on your phone or desktop for an app-like experience. Works offline with cached data.
+
 ## Tech Stack
 
 - **SvelteKit** with `adapter-node`

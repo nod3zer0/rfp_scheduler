@@ -122,10 +122,20 @@
 					<span class="text-xl">👥</span>
 					<span class="text-[10px] font-medium">Overview</span>
 				</a>
+				<a href="/map" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
+					<span class="text-xl">🗺️</span>
+					<span class="text-[10px] font-medium">Map</span>
+				</a>
 				<a href="/friends" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
 					<span class="text-xl">⭐</span>
 					<span class="text-[10px] font-medium">Friends</span>
 				</a>
+				{#if data.group}
+					<a href="/groups/{data.group.id}/manage" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
+						<span class="text-xl">⚙️</span>
+						<span class="text-[10px] font-medium">Manage</span>
+					</a>
+				{/if}
 			</div>
 		</nav>
 	{/if}

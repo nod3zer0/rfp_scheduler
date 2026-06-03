@@ -10,6 +10,8 @@
 	let restoring = $state<string | null>(null);
 	let editingLabel = $state<string | null>(null);
 	let labelValue = $state('');
+	let resettingPassword = $state<string | null>(null);
+	let newPassword = $state('');
 
 	async function syncNow() {
 		if (syncing) return;
@@ -50,6 +52,16 @@
 	function startEditLabel(id: string, current: string | null) {
 		editingLabel = id;
 		labelValue = current ?? '';
+	}
+
+	function startResetPassword(userId: string) {
+		resettingPassword = userId;
+		newPassword = '';
+	}
+
+	function cancelResetPassword() {
+		resettingPassword = null;
+		newPassword = '';
 	}
 
 	async function saveLabel(id: string) {
@@ -221,6 +233,87 @@
 										<input type="hidden" name="groupId" value={g.id} />
 										<button type="submit" class="text-xs text-red-400 hover:text-red-300">Delete</button>
 									</form>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+	</section>
+
+	<!-- Users -->
+	<section class="mb-10">
+		<h2 class="mb-3 text-lg font-semibold text-[var(--color-text)]">Registered Users</h2>
+		{#if data.users.length === 0}
+			<p class="text-sm text-[var(--color-muted)]">No registered users yet.</p>
+		{:else}
+			<div class="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+				<table class="w-full text-sm">
+					<thead class="bg-[var(--color-surface)] text-xs uppercase tracking-wide text-[var(--color-muted)]">
+						<tr>
+							<th class="px-4 py-2 text-left">Name</th>
+							<th class="px-4 py-2 text-left">Created</th>
+							<th class="px-4 py-2"></th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each data.users as u (u.id)}
+							<tr class="border-t border-[var(--color-border)]">
+								<td class="px-4 py-2 font-medium text-[var(--color-text)]">{u.name}</td>
+								<td class="px-4 py-2 text-[var(--color-muted)]">{new Date(u.createdAt).toLocaleDateString()}</td>
+								<td class="px-4 py-2">
+									{#if resettingPassword === u.id}
+										<form
+											method="post"
+											action="?/resetPassword"
+											use:enhance={({ cancel }) => {
+												if (!newPassword || newPassword.length < 6) {
+													toastStore.error('Password must be at least 6 characters');
+													cancel();
+													return;
+												}
+												return async ({ result, update }) => {
+													if (result.type === 'success') {
+														toastStore.success(`Password reset for ${u.name}`);
+														cancelResetPassword();
+													} else if (result.type === 'failure' && result.data) {
+														toastStore.error((result.data as { error?: string }).error ?? 'Failed to reset password');
+													}
+													await update();
+												};
+											}}
+										>
+											<input type="hidden" name="userId" value={u.id} />
+											<div class="flex items-center gap-2">
+												<input
+													type="password"
+													name="newPassword"
+													bind:value={newPassword}
+													placeholder="New password"
+													class="w-32 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs outline-none focus:border-[var(--color-accent)]"
+													autocomplete="off"
+												/>
+												<button
+													type="submit"
+													class="text-xs text-green-400 hover:text-green-300"
+												>Set</button>
+												<button
+													type="button"
+													class="text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]"
+													onclick={cancelResetPassword}
+												>Cancel</button>
+											</div>
+										</form>
+									{:else}
+										<button
+											type="button"
+											class="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]"
+											onclick={() => startResetPassword(u.id)}
+										>
+											Reset password
+										</button>
+									{/if}
 								</td>
 							</tr>
 						{/each}
