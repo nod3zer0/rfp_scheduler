@@ -17,7 +17,7 @@
 		day: string;
 	};
 
-	type GroupMember = { id: string; name: string };
+	type GroupMember = { id: string; name: string; customColor?: string | null };
 
 	import MemberChip from '$lib/components/MemberChip.svelte';
 	import { timeToMinutes, nowMinutes, formatCountdown } from '$lib/time.js';
@@ -142,7 +142,7 @@
 					{#if card.friends.length > 0}
 						<div class="mt-1 flex items-center gap-0.5">
 							{#each card.friends.slice(0, 5) as friend (friend.id)}
-								<MemberChip name={friend.name} size="sm" />
+								<MemberChip name={friend.name} memberId={friend.id} customColor={friend.customColor} size="sm" />
 							{/each}
 							{#if card.friends.length > 5}
 								<span class="text-[10px] text-[var(--color-muted)]">+{card.friends.length - 5}</span>

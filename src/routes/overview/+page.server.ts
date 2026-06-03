@@ -6,12 +6,14 @@ import { DAYS, DAY_LABELS, DAY_DATES, getCurrentDay, type Day } from '$lib/days.
 import { getMyPickIds, buildPicksMap } from '$lib/server/picksHelper.js';
 import { timeToMinutes } from '$lib/time.js';
 import { requireGroupPage } from '$lib/server/auth.js';
+import { getDayOverride } from '$lib/server/settings.js';
 
 export const load: PageServerLoad = ({ locals, url }) => {
 	const group = requireGroupPage(locals);
 
 	const dayParam = url.searchParams.get('day') as Day | null;
-	const day = dayParam && DAYS.includes(dayParam) ? dayParam : getCurrentDay();
+	const dayOverride = getDayOverride();
+	const day = dayParam && DAYS.includes(dayParam) ? dayParam : getCurrentDay(dayOverride);
 
 	const groupMembers = db
 		.select()
@@ -31,7 +33,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		stage: string;
 		timeStart: string;
 		timeEnd: string;
-		pickers: Array<{ id: string; name: string }>;
+		pickers: Array<{ id: string; name: string; customColor?: string | null }>;
 		isMyPick: boolean;
 	};
 
@@ -84,7 +86,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 				createdByName: groupMembers.find((m) => m.id === e.createdByMemberId)?.name ?? null,
 				attendees: groupMembers
 					.filter((m) => attendeeIds.includes(m.id))
-					.map((m) => ({ id: m.id, name: m.name })),
+					.map((m) => ({ id: m.id, name: m.name, customColor: m.customColor })),
 				iAmAttending: locals.member ? attendeeIds.includes(locals.member.id) : false
 			};
 		});
@@ -94,7 +96,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 		days: DAYS.map((d) => ({ key: d, label: DAY_LABELS[d] })),
 		bandEntries,
 		events: dayEvents,
-		members: groupMembers.map((m) => ({ id: m.id, name: m.name })),
+		members: groupMembers.map((m) => ({ id: m.id, name: m.name, customColor: m.customColor })),
 		currentMemberId: locals.member?.id ?? null,
 		groupName: group.name
 	};

@@ -1,3 +1,4 @@
+import { setIdentityCookie } from '$lib/server/cookies.js';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db.js';
@@ -37,7 +38,7 @@ export const actions: Actions = {
 
 		// Set active group in cookie
 		const payload = JSON.stringify({ userId: locals.user.id, memberId, groupId });
-		cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
+		setIdentityCookie(cookies, payload);
 
 		redirect(303, `/groups/${groupId}/manage?new=1`);
 	}

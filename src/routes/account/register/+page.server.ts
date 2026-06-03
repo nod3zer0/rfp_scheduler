@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import { nanoid } from 'nanoid';
 
 import { env } from '$env/dynamic/private';
+import { setIdentityCookie } from '$lib/server/cookies.js';
 
 export const load: PageServerLoad = ({ locals, url }) => {
 	return {
@@ -39,12 +40,7 @@ export const actions: Actions = {
 		db.insert(users).values({ id: userId, name, passwordHash, createdAt: new Date().toISOString() }).run();
 
 		const payload = JSON.stringify({ userId, memberId: '', groupId: '' });
-		cookies.set('rfp_identity', payload, {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
-			sameSite: 'lax',
-			httpOnly: false
-		});
+		setIdentityCookie(cookies, payload);
 
 		if (redirectTo !== '/') redirect(303, redirectTo);
 		redirect(303, '/account/groups');

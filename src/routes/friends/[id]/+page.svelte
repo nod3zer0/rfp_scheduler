@@ -64,7 +64,7 @@
 				← Friends
 			</a>
 			<div class="flex items-center gap-4">
-				<MemberChip name={data.friend.name} size="lg" />
+				<MemberChip name={data.friend.name} memberId={data.friend.id} customColor={data.friend.customColor} size="lg" />
 				<div>
 					<h1 class="text-xl font-bold text-[var(--color-text)]">
 						{data.friend.name}

@@ -22,6 +22,7 @@ export const load: LayoutServerLoad = ({ locals }) => {
 		user: locals.user
 			? { id: locals.user.id, name: locals.user.name, pictureUrl: locals.user.pictureUrl ?? null }
 			: null,
-		myGroups
+		myGroups,
+		isGroupOwner: locals.group && locals.user ? locals.group.createdByUserId === locals.user.id : false
 	};
 };

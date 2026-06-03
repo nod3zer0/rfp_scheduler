@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { toastStore } from '$lib/toast.svelte';
+	import { DAY_LABELS } from '$lib/days.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -91,6 +92,29 @@
 		<h1 class="text-2xl font-bold text-[var(--color-text)]">Admin Panel</h1>
 		<a href="/" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]">← Back to app</a>
 	</div>
+
+	<!-- Day Override -->
+	<section class="mb-10">
+		<h2 class="mb-3 text-lg font-semibold text-[var(--color-text)]">Current Day Override</h2>
+		<div class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+			<p class="mb-3 text-sm text-[var(--color-muted)]">
+				Override what "today" is for testing. Current: {data.dayOverride ? DAY_LABELS[data.dayOverride] : 'Auto (based on real date)'}
+			</p>
+			<form method="POST" action="?/setDayOverride" use:enhance>
+				<select name="day" class="mr-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm">
+					<option value="auto" selected={!data.dayOverride}>Auto (real date)</option>
+					<option value="wednesday" selected={data.dayOverride === 'wednesday'}>Wed 10.6</option>
+					<option value="thursday" selected={data.dayOverride === 'thursday'}>Thu 11.6</option>
+					<option value="friday" selected={data.dayOverride === 'friday'}>Fri 12.6</option>
+					<option value="saturday" selected={data.dayOverride === 'saturday'}>Sat 13.6</option>
+					<option value="sunday" selected={data.dayOverride === 'sunday'}>Sun 14.6</option>
+				</select>
+				<button type="submit" class="rounded-md bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:bg-[var(--color-accent-hover)]">
+					Set Day
+				</button>
+			</form>
+		</div>
+	</section>
 
 	<!-- Schedule Sync -->
 	<section class="mb-10">

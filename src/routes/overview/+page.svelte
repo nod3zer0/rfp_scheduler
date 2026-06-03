@@ -232,7 +232,7 @@
 							: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]'}"
 						onclick={() => toggleMemberFilter(m.id)}
 					>
-						<MemberChip name={m.name} size="sm" />
+						<MemberChip name={m.name} memberId={m.id} customColor={m.customColor} size="sm" />
 						{m.name}{m.id === data.currentMemberId ? ' (you)' : ''}
 					</button>
 				{/each}
@@ -331,7 +331,7 @@
 											<div class="mt-2 flex flex-wrap gap-1">
 												{#each ev.attendees as att (att.id)}
 													<span class="flex items-center gap-1 rounded-full bg-blue-900/40 px-2 py-0.5 text-[11px] text-blue-200">
-														<MemberChip name={att.name} size="sm" />{att.name}
+														<MemberChip name={att.name} memberId={att.id} customColor={att.customColor} size="sm" />{att.name}
 													</span>
 												{/each}
 											</div>
@@ -411,7 +411,7 @@
 												: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]'}"
 											onclick={() => toggleMemberFilter(picker.id)}
 										>
-											<MemberChip name={picker.name} size="sm" />
+											<MemberChip name={picker.name} memberId={picker.id} customColor={picker.customColor} size="sm" />
 											{picker.name}
 										</button>
 									{/each}

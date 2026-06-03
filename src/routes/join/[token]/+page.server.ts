@@ -1,3 +1,4 @@
+import { setIdentityCookie } from '$lib/server/cookies.js';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db.js';
@@ -42,6 +43,6 @@ export const load: PageServerLoad = ({ params, locals, cookies }) => {
 	}
 
 	const payload = JSON.stringify({ userId: locals.user.id, memberId: member.id, groupId: link.groupId });
-	cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
+	setIdentityCookie(cookies, payload);
 	redirect(303, '/');
 };

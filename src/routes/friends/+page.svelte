@@ -24,7 +24,7 @@
 					href="/friends/{m.id}"
 					class="flex flex-col items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center transition-all hover:border-[var(--color-muted)] hover:bg-[var(--color-surface-2)] {m.id === data.currentMemberId ? 'ring-2 ring-[var(--color-accent)]' : ''}"
 				>
-					<MemberChip name={m.name} size="lg" />
+					<MemberChip name={m.name} memberId={m.id} customColor={m.customColor} size="lg" />
 					<div>
 						<p class="font-medium text-[var(--color-text)]">
 							{m.name}

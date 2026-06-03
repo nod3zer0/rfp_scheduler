@@ -51,9 +51,11 @@
 
 			<div class="ml-auto flex items-center gap-3">
 				{#if data.member}
+					<a href="/search" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">Search</a>
 					<a href="/overview" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">Overview</a>
+					<a href="/map" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">Map</a>
 					<a href="/friends" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">Friends</a>
-					{#if data.group}
+					{#if data.group && data.isGroupOwner}
 						<a href="/groups/{data.group.id}/manage" class="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)] sm:inline">Manage</a>
 					{/if}
 				{/if}
@@ -63,6 +65,8 @@
 						<summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text)] transition-colors hover:border-[var(--color-muted)] hover:bg-[var(--color-surface)]">
 							<MemberChip
 								name={data.user.name}
+								memberId={data.member?.id}
+								customColor={data.member?.customColor}
 								size="sm"
 								avatarUrl={data.user.pictureUrl ?? undefined}
 							/>
@@ -118,6 +122,10 @@
 					<span class="text-xl">🗓</span>
 					<span class="text-[10px] font-medium">Schedule</span>
 				</a>
+				<a href="/search" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
+					<span class="text-xl">🔍</span>
+					<span class="text-[10px] font-medium">Search</span>
+				</a>
 				<a href="/overview" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
 					<span class="text-xl">👥</span>
 					<span class="text-[10px] font-medium">Overview</span>
@@ -130,7 +138,7 @@
 					<span class="text-xl">⭐</span>
 					<span class="text-[10px] font-medium">Friends</span>
 				</a>
-				{#if data.group}
+				{#if data.group && data.isGroupOwner}
 					<a href="/groups/{data.group.id}/manage" class="flex flex-1 flex-col items-center gap-0.5 py-3 text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
 						<span class="text-xl">⚙️</span>
 						<span class="text-[10px] font-medium">Manage</span>

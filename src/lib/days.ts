@@ -26,7 +26,13 @@ export const SLUG_TO_DAY: Record<string, { day: Day; date: string }> = {
 	'nedele-14-6': { day: 'sunday', date: '2026-06-14' }
 };
 
-export function getCurrentDay(): Day {
+export function getCurrentDay(overrideDay?: Day | null): Day {
+	// If override is provided, use it
+	if (overrideDay && DAYS.includes(overrideDay)) {
+		return overrideDay;
+	}
+
+	// Otherwise use current date
 	const now = new Date();
 	const date = now.toISOString().slice(0, 10);
 	const found = (Object.entries(DAY_DATES) as [Day, string][]).find(([, d]) => d === date);

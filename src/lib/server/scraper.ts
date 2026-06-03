@@ -219,12 +219,32 @@ export function restoreSnapshot(snapshotId: string): { restoredCount: number } {
 	const data: typeof schedule.$inferInsert[] = JSON.parse(snapshot.snapshotData);
 	const now = new Date().toISOString();
 
-	db.delete(schedule).run();
+	// Get current schedule IDs to know which to delete
+	const currentScheduleIds = new Set(db.select({ id: schedule.id }).from(schedule).all().map(s => s.id));
+	const snapshotScheduleIds = new Set(data.map(s => s.id));
 
+	// Delete schedule entries that exist in current but not in snapshot
+	// This preserves picks for entries that remain
+	for (const currentId of currentScheduleIds) {
+		if (!snapshotScheduleIds.has(currentId)) {
+			db.delete(schedule).where(eq(schedule.id, currentId)).run();
+		}
+	}
+
+	// Insert or update schedule entries from snapshot
 	for (const row of data) {
-		db.insert(schedule)
-			.values({ ...row, updatedAt: now })
-			.run();
+		if (currentScheduleIds.has(row.id)) {
+			// Update existing entry (preserves picks)
+			db.update(schedule)
+				.set({ ...row, updatedAt: now })
+				.where(eq(schedule.id, row.id))
+				.run();
+		} else {
+			// Insert new entry
+			db.insert(schedule)
+				.values({ ...row, updatedAt: now })
+				.run();
+		}
 	}
 
 	db.update(scheduleSnapshots).set({ isActive: false }).run();

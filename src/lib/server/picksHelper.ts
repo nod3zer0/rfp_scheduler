@@ -27,12 +27,12 @@ export function getMyPickIds(memberId: string, userId: string | null | undefined
 /**
  * Builds a picksMap for a set of schedule IDs and group members.
  * For registered members, aggregates by userId so picks from any group are included.
- * Returns: Record<scheduleId, Array<{id: memberId, name}>>
+ * Returns: Record<scheduleId, Array<{id: memberId, name, customColor}>>
  */
 export function buildPicksMap(
 	scheduleIds: string[],
-	groupMembers: Array<{ id: string; name: string; userId: string | null }>
-): Record<string, Array<{ id: string; name: string }>> {
+	groupMembers: Array<{ id: string; name: string; userId: string | null; customColor?: string | null }>
+): Record<string, Array<{ id: string; name: string; customColor?: string | null }>> {
 	if (scheduleIds.length === 0 || groupMembers.length === 0) return {};
 
 	const memberIds = groupMembers.map((m) => m.id);
@@ -52,7 +52,7 @@ export function buildPicksMap(
 		)
 		.all();
 
-	const result: Record<string, Array<{ id: string; name: string }>> = {};
+	const result: Record<string, Array<{ id: string; name: string; customColor?: string | null }>> = {};
 
 	for (const pick of allPicks) {
 		// Find which group member this pick belongs to:
@@ -66,7 +66,7 @@ export function buildPicksMap(
 		if (!result[pick.scheduleId]) result[pick.scheduleId] = [];
 		// Avoid duplicates (same member via multiple paths)
 		if (!result[pick.scheduleId].some((e) => e.id === member.id)) {
-			result[pick.scheduleId].push({ id: member.id, name: member.name });
+			result[pick.scheduleId].push({ id: member.id, name: member.name, customColor: member.customColor });
 		}
 	}
 

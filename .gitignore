@@ -34,3 +34,8 @@ vite.config.ts.timestamp-*
 
 # Cursor IDE
 .cursor
+
+# Map calibration files (large binary)
+*.tif
+*.tiff
+*.geotiff

@@ -46,7 +46,7 @@
 
 	// Optimistic picks state — syncs from server data on navigation
 	let myPickIds = $state(new Set<string>());
-	let picksMap = $state<Record<string, Array<{ id: string; name: string }>>>({});
+	let picksMap = $state<Record<string, Array<{ id: string; name: string; customColor?: string | null }>>>({});
 	let toggling = $state(new Set<string>());
 
 	$effect(() => {
@@ -205,7 +205,7 @@
 	let nowLinePx = $state<number | null>(null);
 	$effect(() => {
 		function update() {
-			if (data.day !== getCurrentDay()) { nowLinePx = null; return; }
+			if (data.day !== data.currentDay) { nowLinePx = null; return; }
 			const nm = nowMinutes();
 			if (nm < GRID_START || nm > GRID_END) { nowLinePx = null; return; }
 			nowLinePx = (nm - GRID_START) * PX_PER_MIN;
@@ -253,29 +253,41 @@
 {#if data.groupMembers.length > 0}
 	<div class="sticky top-[57px] z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
 
-		<!-- Row 1: Member chips + pick toggles -->
+		<!-- Row 1: Search link + Member chips + pick toggles -->
 		<div class="flex items-center gap-2 overflow-x-auto px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-			<!-- Member chips -->
-			{#if data.groupMembers.length > 1}
-				{#each data.groupMembers as m (m.id)}
-					{@const active = filterMembers.has(m.id)}
-					<button
-						type="button"
-						onclick={() => toggleMember(m.id)}
-						class="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors {active
-							? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-							: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]'}"
-					>
-						<MemberChip name={m.name} size="sm" />
-						{m.name}{m.id === data.currentMemberId ? ' (you)' : ''}
-					</button>
-				{/each}
-			{/if}
+			<!-- Search link -->
+			<a
+				href="/search"
+				class="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<circle cx="11" cy="11" r="8"/>
+					<path d="m21 21-4.35-4.35"/>
+				</svg>
+				Search bands
+			</a>
 
 			<!-- Divider -->
-			{#if data.groupMembers.length > 1}
-				<div class="mx-1 h-4 w-px shrink-0 bg-[var(--color-border)]"></div>
-			{/if}
+			<div class="mx-1 h-4 w-px shrink-0 bg-[var(--color-border)]"></div>
+
+			<!-- Member chips -->
+			<!-- Member chips -->
+			{#each data.groupMembers as m (m.id)}
+				{@const active = filterMembers.has(m.id)}
+				<button
+					type="button"
+					onclick={() => toggleMember(m.id)}
+					class="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors {active
+						? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+						: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]'}"
+				>
+					<MemberChip name={m.name} memberId={m.id} customColor={m.customColor} size="sm" />
+					{m.name}{m.id === data.currentMemberId ? ' (you)' : ''}
+				</button>
+			{/each}
+
+			<!-- Divider -->
+			<div class="mx-1 h-4 w-px shrink-0 bg-[var(--color-border)]"></div>
 
 			<!-- My picks toggle -->
 			{#if data.currentMemberId}
@@ -291,17 +303,15 @@
 			{/if}
 
 			<!-- Has group picks toggle -->
-			{#if data.groupMembers.length > 1}
-				<button
-					type="button"
-					onclick={() => (filterHasPicks = !filterHasPicks)}
-					class="flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors {filterHasPicks
-						? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
-						: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]'}"
-				>
-					👥 Has picks
-				</button>
-			{/if}
+			<button
+				type="button"
+				onclick={() => (filterHasPicks = !filterHasPicks)}
+				class="flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors {filterHasPicks
+					? 'border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]'
+					: 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]'}"
+			>
+				👥 Has picks
+			</button>
 
 			<!-- Clear all -->
 			{#if hasActiveFilter}
@@ -479,7 +489,7 @@
 								{#if pickers.length > 0}
 									<div class="mt-0.5 flex gap-0.5">
 										{#each pickers as picker (picker.id)}
-											<MemberChip name={picker.name} size="sm" />
+											<MemberChip name={picker.name} memberId={picker.id} customColor={picker.customColor} size="sm" />
 										{/each}
 									</div>
 								{/if}
@@ -542,7 +552,7 @@
 						{#if ev.attendees.length > 0}
 							<div class="mt-0.5 flex flex-wrap gap-0.5">
 								{#each ev.attendees.slice(0, 4) as att (att.id)}
-									<MemberChip name={att.name} size="sm" />
+									<MemberChip name={att.name} memberId={att.id} customColor={att.customColor} size="sm" />
 								{/each}
 								{#if ev.attendees.length > 4}
 									<span class="text-[9px] text-blue-400">+{ev.attendees.length - 4}</span>
@@ -613,7 +623,7 @@
 							{#if bandPickers.length > 0}
 								<div class="mt-0.5 flex flex-wrap gap-0.5">
 									{#each bandPickers as picker (picker.id)}
-										<MemberChip name={picker.name} size="sm" />
+										<MemberChip name={picker.name} memberId={picker.id} customColor={picker.customColor} size="sm" />
 									{/each}
 									{#if overflow > 0}
 										<span class="text-[9px] text-[var(--color-muted)]">+{overflow}</span>

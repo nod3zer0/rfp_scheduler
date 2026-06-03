@@ -87,6 +87,28 @@ Schema: `src/lib/server/schema.ts`
 
 For registered members, `buildPicksMap` queries by `userId` to include picks from other groups.
 
+### Festival Map Feature
+
+**GPS-enabled map pins** (`/map` route):
+- Users can place pins on festival maps (venue, sanitation, parking)
+- Pins can be placed via GPS ("I'm here now") or manual click on map
+- Each pin has: label, optional note, optional expiration time
+- Shows distance/bearing to pins when user location is available
+- Members can only delete their own pins
+
+**Map configuration** (`src/lib/mapConfig.ts`):
+- `gpsToImageCoords()` — converts GPS lat/lng to image x/y percentage
+- `imageCoordsToGPS()` — inverse conversion
+- `calculateDistance()`, `calculateBearing()`, `formatDistance()` — GPS utilities
+- `MAP_BOUNDS` — geographic bounds for the venue map
+
+**Map calibration**:
+- Download GeoTIFF from MapWarper (https://mapwarper.net/maps/107468 → Export → GeoTiff)
+- Run `npm run map:calibrate path/to/map.tif` to extract bounds and update `mapConfig.ts`
+- See `MAP_CALIBRATION.md` for detailed instructions
+
+**Database**: `mapPins` table stores both GPS coordinates (lat/lng) and image coordinates (x%, y%). GPS coordinates are nullable for manually-placed pins. Pins also have customizable `icon` (emoji) and `color` (hex) fields.
+
 ### Schedule Scraping
 
 `src/lib/server/scraper.ts` scrapes `rockforpeople.cz/harmonogram/` with Cheerio.

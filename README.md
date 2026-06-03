@@ -102,6 +102,17 @@ yourdomain.com {
 **Safety:** If the scraper returns 0 results (e.g. the site changed), it aborts without touching the database.  
 **Recovery:** If schedule data looks wrong, go to `/admin` → Snapshot History → Restore an earlier snapshot.
 
+## Map Calibration (Optional)
+
+For accurate GPS pin placement on the festival map:
+
+```bash
+# Download GeoTIFF from https://mapwarper.net/maps/107468 -> Export -> GeoTiff
+npm run map:calibrate path/to/festival-venue.tif
+```
+
+See `MAP_CALIBRATION.md` for details. Without calibration, GPS pins use approximate coordinates.
+
 ## Identity Model
 
 Users can participate as **guests** or **registered accounts**:

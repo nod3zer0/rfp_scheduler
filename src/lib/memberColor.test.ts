@@ -14,7 +14,7 @@ describe('getMemberColor', () => {
 
 	it('produces different colors for different names', () => {
 		const names = ['Alice', 'Bob', 'Charlie', 'Diana'];
-		const colors = names.map(getMemberColor);
+		const colors = names.map(name => getMemberColor(name));
 		const unique = new Set(colors);
 		expect(unique.size).toBe(names.length);
 	});

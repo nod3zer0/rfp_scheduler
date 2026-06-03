@@ -24,6 +24,7 @@ export const members = sqliteTable('members', {
 		.references(() => groups.id, { onDelete: 'cascade' }),
 	userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
 	name: text('name').notNull(),
+	customColor: text('custom_color'), // nullable - if null, use auto-generated color
 	createdAt: text('created_at').notNull()
 });
 
@@ -49,6 +50,11 @@ export const schedule = sqliteTable('schedule', {
 	timeEnd: text('time_end').notNull(),
 	rfpUrl: text('rfp_url'),
 	updatedAt: text('updated_at').notNull()
+});
+
+export const appSettings = sqliteTable('app_settings', {
+	key: text('key').primaryKey(),
+	value: text('value').notNull()
 });
 
 export const scheduleSnapshots = sqliteTable('schedule_snapshots', {
@@ -108,6 +114,26 @@ export const adminSessions = sqliteTable('admin_sessions', {
 	createdAt: text('created_at').notNull()
 });
 
+export const mapPins = sqliteTable('map_pins', {
+	id: text('id').primaryKey(),
+	groupId: text('group_id')
+		.notNull()
+		.references(() => groups.id, { onDelete: 'cascade' }),
+	memberId: text('member_id')
+		.notNull()
+		.references(() => members.id, { onDelete: 'cascade' }),
+	x: integer('x').notNull(), // 0-100 percentage on image
+	y: integer('y').notNull(), // 0-100 percentage on image
+	latitude: integer('latitude'), // GPS coord (nullable for manual pins)
+	longitude: integer('longitude'), // GPS coord (nullable for manual pins)
+	label: text('label').notNull(),
+	note: text('note'),
+	icon: text('icon').notNull().default('📍'), // emoji icon
+	color: text('color').notNull().default('#8b5cf6'), // hex color
+	expiresAt: text('expires_at'), // for temporary "I'm here now" pins
+	createdAt: text('created_at').notNull()
+});
+
 export type User = typeof users.$inferSelect;
 export type Group = typeof groups.$inferSelect;
 export type Member = typeof members.$inferSelect;
@@ -117,3 +143,4 @@ export type ScheduleSnapshot = typeof scheduleSnapshots.$inferSelect;
 export type Pick = typeof picks.$inferSelect;
 export type GroupEvent = typeof groupEvents.$inferSelect;
 export type GroupEventAttendee = typeof groupEventAttendees.$inferSelect;
+export type MapPin = typeof mapPins.$inferSelect;

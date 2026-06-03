@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { setIdentityCookie, clearIdentityCookie } from '$lib/server/cookies.js';
 
 export const POST: RequestHandler = ({ cookies, locals }) => {
 	// If user has a group membership, keep them as a guest in the group
@@ -10,10 +11,10 @@ export const POST: RequestHandler = ({ cookies, locals }) => {
 	if (groupId && memberId && !locals.member?.userId) {
 		// Guest member - keep identity
 		const payload = JSON.stringify({ memberId, groupId });
-		cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
+		setIdentityCookie(cookies, payload);
 	} else {
 		// Clear cookie entirely
-		cookies.delete('rfp_identity', { path: '/' });
+		clearIdentityCookie(cookies);
 	}
 
 	redirect(303, '/');

@@ -1,7 +1,9 @@
-export function getMemberColor(name: string): string {
+export function getMemberColor(memberId: string, customColor?: string | null): string {
+	if (customColor) return customColor;
+
 	let hash = 0;
-	for (let i = 0; i < name.length; i++) {
-		hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+	for (let i = 0; i < memberId.length; i++) {
+		hash = (hash * 31 + memberId.charCodeAt(i)) >>> 0;
 	}
 	const hue = hash % 360;
 	return `hsl(${hue}, 65%, 55%)`;

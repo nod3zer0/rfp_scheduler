@@ -7,6 +7,7 @@ import { DAYS, DAY_LABELS, getCurrentDay, type Day } from '$lib/days.js';
 import { timeToMinutes } from '$lib/time.js';
 import { env } from '$env/dynamic/private';
 import { getMyPickIds, buildPicksMap } from '$lib/server/picksHelper.js';
+import { getDayOverride } from '$lib/server/settings.js';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	// Redirect unauthenticated or group-less visitors
@@ -18,12 +19,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const dayParam = url.searchParams.get('day') as Day | null;
 	const memberFilter = url.searchParams.get('member') ?? null;
 
-	const day = dayParam && DAYS.includes(dayParam) ? dayParam : getCurrentDay();
+	const dayOverride = getDayOverride();
+	const day = dayParam && DAYS.includes(dayParam) ? dayParam : getCurrentDay(dayOverride);
 
 	const daySchedule = db.select().from(schedule).where(eq(schedule.day, day)).all();
 
 	// Load group members (needed for picksMap and dayEvents)
-	const groupMembers = db.select().from(members).where(eq(members.groupId, locals.group.id)).all();
+	const groupMembers = db
+		.select({ id: members.id, name: members.name, userId: members.userId, customColor: members.customColor })
+		.from(members)
+		.where(eq(members.groupId, locals.group.id))
+		.all();
 	const scheduleIds = daySchedule.map((s) => s.id);
 
 	// picksMap: who in this group picked each band (registered users share across groups via userId)
@@ -38,7 +44,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	let myTodayPicks: Array<{ id: string; band: string; stage: string; timeStart: string; timeEnd: string; date: string; day: string }> = [];
 	let todayPicksMap: Record<string, Array<{ id: string; name: string }>> = {};
 	if (locals.member && myPickIds.length > 0) {
-		const todayDay = getCurrentDay();
+		const todayDay = getCurrentDay(dayOverride);
 		const todaySchedule = db.select().from(schedule).where(eq(schedule.day, todayDay)).all().filter((s) => myPickIds.includes(s.id));
 		myTodayPicks = todaySchedule.map((s) => ({ id: s.id, band: s.band, stage: s.stage, timeStart: s.timeStart, timeEnd: s.timeEnd, date: s.date, day: s.day }));
 		// Build a picks map for today (who else is attending each band) for NowPlaying
@@ -57,13 +63,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		timeEnd: string | null;
 		day: string;
 		createdByMemberId: string | null;
-		attendees: Array<{ id: string; name: string }>;
+		attendees: Array<{ id: string; name: string; customColor?: string | null }>;
 		iAmAttending: boolean;
 	};
 	let dayEvents: DayEvent[] = [];
 
 	if (locals.group) {
-		const todayDay = getCurrentDay();
+		const todayDay = getCurrentDay(dayOverride);
 
 		// NowPlaying events (always today)
 		myTodayEvents = db
@@ -103,7 +109,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					createdByMemberId: e.createdByMemberId,
 						attendees: groupMembers
 							.filter((m) => attendeeIds.includes(m.id))
-							.map((m) => ({ id: m.id, name: m.name })),
+							.map((m) => ({ id: m.id, name: m.name, customColor: m.customColor })),
 						iAmAttending: locals.member ? attendeeIds.includes(locals.member.id) : false
 					};
 				});
@@ -121,8 +127,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		todayPicksMap,
 		dayEvents,
 		memberFilter,
-		groupMembers: groupMembers.map((m) => ({ id: m.id, name: m.name })),
+		groupMembers: groupMembers.map((m) => ({ id: m.id, name: m.name, customColor: m.customColor })),
 		currentMemberId: locals.member?.id ?? null,
-		facebookEnabled: !!(env.FACEBOOK_APP_ID && env.FACEBOOK_APP_SECRET)
+		facebookEnabled: !!(env.FACEBOOK_APP_ID && env.FACEBOOK_APP_SECRET),
+		currentDay: getCurrentDay(dayOverride)
 	};
 };

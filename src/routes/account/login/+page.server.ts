@@ -5,6 +5,7 @@ import { users, members } from '$lib/server/schema.js';
 import { eq, and } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { env } from '$env/dynamic/private';
+import { setIdentityCookie } from '$lib/server/cookies.js';
 
 export const load: PageServerLoad = ({ locals, url }) => {
 	if (locals.user) redirect(303, '/');
@@ -45,12 +46,7 @@ export const actions: Actions = {
 		const anyMember = db.select().from(members).where(eq(members.userId, user.id)).get();
 
 		const payload = JSON.stringify({ userId: user.id, memberId, groupId });
-		cookies.set('rfp_identity', payload, {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
-			sameSite: 'lax',
-			httpOnly: false
-		});
+		setIdentityCookie(cookies, payload);
 
 		// If user has no group context at all, send them to group selection/creation
 		if (!anyMember) redirect(303, '/account/groups');

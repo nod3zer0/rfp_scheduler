@@ -62,7 +62,7 @@ export const load: PageServerLoad = ({ params, locals }) => {
 	const myPickIds: string[] = locals.member ? getMyPickIds(locals.member.id, locals.user?.id) : [];
 
 	return {
-		friend: { id: member.id, name: member.name },
+		friend: { id: member.id, name: member.name, customColor: member.customColor },
 		isSelf: locals.member?.id === member.id,
 		currentMemberId: locals.member?.id ?? null,
 		byDay,

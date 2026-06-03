@@ -4,6 +4,8 @@ import { db } from '$lib/server/db.js';
 import { groups, members, picks, inviteLinks, scheduleSnapshots, users } from '$lib/server/schema.js';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
+import { getDayOverride, setDayOverride } from '$lib/server/settings.js';
+import { DAYS, type Day } from '$lib/days.js';
 
 export const load: PageServerLoad = () => {
 	const allGroups = db.select().from(groups).all();
@@ -39,7 +41,8 @@ export const load: PageServerLoad = () => {
 		})),
 		users: allUsers,
 		snapshots: snapshots.map((s) => ({ ...s, snapshotData: undefined })),
-		lastSyncAt: activeSnapshot?.scrapedAt ?? null
+		lastSyncAt: activeSnapshot?.scrapedAt ?? null,
+		dayOverride: getDayOverride()
 	};
 };
 
@@ -76,5 +79,22 @@ export const actions: Actions = {
 		db.update(users).set({ passwordHash }).where(eq(users.id, userId)).run();
 
 		return { success: true, userName: user.name };
+	},
+
+	setDayOverride: async ({ request }) => {
+		const form = await request.formData();
+		const day = form.get('day') as string | null;
+
+		if (day === '' || day === 'auto') {
+			setDayOverride(null);
+			return { success: true, day: null };
+		}
+
+		if (!day || !DAYS.includes(day as Day)) {
+			return fail(400, { error: 'Invalid day' });
+		}
+
+		setDayOverride(day as Day);
+		return { success: true, day };
 	}
 };

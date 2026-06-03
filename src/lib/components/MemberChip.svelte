@@ -3,17 +3,22 @@
 
 	let {
 		name,
+		memberId = undefined,
+		customColor = undefined,
 		size = 'md',
 		showName = false,
 		avatarUrl = undefined
 	}: {
 		name: string;
+		memberId?: string;
+		customColor?: string | null;
 		size?: 'sm' | 'md' | 'lg';
 		showName?: boolean;
 		avatarUrl?: string;
 	} = $props();
 
-	const bgColor = $derived(getMemberColor(name));
+	// If memberId provided, use it for color; otherwise fall back to name (legacy behavior)
+	const bgColor = $derived(getMemberColor(memberId || name, customColor));
 	const initials = $derived(getMemberInitials(name));
 
 	const sizeClass = $derived.by(() => {

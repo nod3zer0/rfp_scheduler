@@ -1,3 +1,4 @@
+import { setIdentityCookie } from '$lib/server/cookies.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db.js';
@@ -48,7 +49,7 @@ export const actions: Actions = {
 		const groupId = '';
 		const memberId = '';
 		const payload = JSON.stringify({ userId, memberId, groupId });
-		cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
+		setIdentityCookie(cookies, payload);
 
 		if (redirectTo !== '/') redirect(303, redirectTo);
 		if (!groupId) redirect(303, '/account/groups');

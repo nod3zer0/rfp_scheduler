@@ -1,3 +1,4 @@
+import { setIdentityCookie } from '$lib/server/cookies.js';
 import { redirect, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getFacebook } from '$lib/server/oauth.js';
@@ -88,13 +89,13 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		const firstMember = db.select().from(members).where(eq(members.userId, userId)).get();
 		if (firstMember) {
 			const payload = JSON.stringify({ userId, memberId: firstMember.id, groupId: firstMember.groupId });
-			cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
+			setIdentityCookie(cookies, payload);
 			redirect(302, pendingRedirect !== '/' ? pendingRedirect : '/');
 		}
 	}
 
 	const payload = JSON.stringify({ userId, memberId, groupId });
-	cookies.set('rfp_identity', payload, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: false });
+	setIdentityCookie(cookies, payload);
 
 	if (!groupId) redirect(302, pendingRedirect !== '/' ? pendingRedirect : '/account/groups');
 	redirect(302, pendingRedirect !== '/' ? pendingRedirect : '/');

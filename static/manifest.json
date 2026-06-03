@@ -3,6 +3,7 @@
 	"short_name": "RFP Squad",
 	"description": "Coordinate Rock for People 2026 festival plans with your friend group",
 	"start_url": "/",
+	"scope": "/",
 	"display": "standalone",
 	"background_color": "#0f0f0f",
 	"theme_color": "#8b5cf6",
